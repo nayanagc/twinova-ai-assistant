@@ -229,7 +229,7 @@ ${contextBlock}`;
               });
             }
             if (inserts.length) {
-              await supabase.from("messages").insert(inserts);
+              await (supabase.from("messages") as unknown as { insert: (rows: unknown) => Promise<unknown> }).insert(inserts);
               await supabase
                 .from("threads")
                 .update({ updated_at: new Date().toISOString() })
