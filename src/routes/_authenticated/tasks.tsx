@@ -150,6 +150,7 @@ function TaskColumn({
   toggle: (t: never) => void;
   remove: (id: string) => void;
 }) {
+  const toggleAny = toggle as unknown as (t: unknown) => void;
   return (
     <div className="glass rounded-3xl p-4">
       <div className={`mb-3 flex items-center justify-between rounded-2xl bg-gradient-to-br ${tint} to-transparent p-3`}>
@@ -168,7 +169,7 @@ function TaskColumn({
             className="group flex gap-3 rounded-2xl border border-border/50 bg-background/40 p-3"
           >
             <button
-              onClick={() => toggle(t)}
+              onClick={() => toggleAny(t)}
               className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border transition ${
                 t.status === "done"
                   ? "gradient-bg border-transparent text-white"
