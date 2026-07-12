@@ -209,20 +209,14 @@ ${contextBlock}`;
             if (!body.threadId) return;
             const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
             const lastUser = [...messages].reverse().find((m) => m.role === "user");
-            const inserts: Array<{
-              thread_id: string;
-              user_id: string;
-              role: "user" | "assistant";
-              content: string;
-              parts: never;
-            }> = [];
+            const inserts: Array<Record<string, unknown>> = [];
             if (lastUser) {
               inserts.push({
                 thread_id: body.threadId,
                 user_id: userId,
                 role: "user",
                 content: extractText(lastUser),
-                parts: lastUser.parts,
+                parts: lastUser.parts as unknown as never,
               });
             }
             if (lastAssistant) {
@@ -231,7 +225,7 @@ ${contextBlock}`;
                 user_id: userId,
                 role: "assistant",
                 content: extractText(lastAssistant),
-                parts: lastAssistant.parts,
+                parts: lastAssistant.parts as unknown as never,
               });
             }
             if (inserts.length) {
