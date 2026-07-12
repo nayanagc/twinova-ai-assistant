@@ -198,7 +198,7 @@ ${contextBlock}`;
         const result = streamText({
           model: gateway(DEFAULT_CHAT_MODEL),
           system,
-          messages: convertToModelMessages(body.messages),
+          messages: await convertToModelMessages(body.messages),
           tools,
           stopWhen: stepCountIs(50),
         });
@@ -214,7 +214,7 @@ ${contextBlock}`;
               user_id: string;
               role: "user" | "assistant";
               content: string;
-              parts: unknown;
+              parts: never;
             }> = [];
             if (lastUser) {
               inserts.push({
