@@ -142,11 +142,12 @@ function TaskColumn({
     id: string;
     title: string;
     description: string | null;
-    priority: Priority;
-    status: Status;
+    priority: string;
+    status: string;
     deadline: string | null;
+    [key: string]: unknown;
   }>;
-  toggle: (t: (typeof tasks)[number]) => void;
+  toggle: (t: never) => void;
   remove: (id: string) => void;
 }) {
   return (
