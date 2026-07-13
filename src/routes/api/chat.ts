@@ -47,22 +47,39 @@ export const Route = createFileRoute("/api/chat")({
         if (!Array.isArray(body.messages))
           return new Response("Bad request", { status: 400 });
 
-        // Load context: tasks + events
+        // Load context: tasks, events, recent activity, prior conversations (cross-thread memory)
         const now = new Date();
         const in7d = new Date(now.getTime() + 7 * 86400000);
-        const [{ data: tasks }, { data: events }, { data: profile }] = await Promise.all([
+        const past7d = new Date(now.getTime() - 7 * 86400000).toISOString();
+        const [
+          { data: tasks },
+          { data: events },
+          { data: profile },
+          { data: recentDone },
+          { data: moods },
+          { data: recentMessages },
+        ] = await Promise.all([
           supabase.from("tasks").select("id,title,priority,status,deadline,description").order("deadline", { nullsFirst: false }),
           supabase.from("events").select("id,title,category,start_time,end_time,description")
             .gte("start_time", now.toISOString()).lte("start_time", in7d.toISOString()).order("start_time"),
           supabase.from("profiles").select("display_name,ai_personality").eq("id", userId).maybeSingle(),
+          supabase.from("tasks").select("title,completed_at,priority")
+            .eq("status", "done").gte("completed_at", past7d).order("completed_at", { ascending: false }).limit(15),
+          supabase.from("mood_logs").select("mood,note,logged_at")
+            .gte("logged_at", past7d).order("logged_at", { ascending: false }).limit(10),
+          supabase.from("messages").select("role,content,created_at,thread_id")
+            .neq("thread_id", body.threadId ?? "00000000-0000-0000-0000-000000000000")
+            .order("created_at", { ascending: false }).limit(20),
         ]);
 
         const displayName = profile?.display_name ?? "there";
+        const personality = profile?.ai_personality ?? "friendly";
         const contextBlock = `
 CURRENT DATE/TIME: ${now.toISOString()}
 USER NAME: ${displayName}
+AI PERSONALITY: ${personality}
 
-UPCOMING TASKS (${tasks?.length ?? 0}):
+UPCOMING TASKS (${(tasks ?? []).filter((t) => t.status !== "done").length}):
 ${(tasks ?? [])
   .filter((t) => t.status !== "done")
   .slice(0, 30)
@@ -72,6 +89,22 @@ ${(tasks ?? [])
 UPCOMING EVENTS (next 7 days, ${events?.length ?? 0}):
 ${(events ?? [])
   .map((e) => `- ${e.start_time} → ${e.end_time} [${e.category}] ${e.title}`)
+  .join("\n") || "(none)"}
+
+RECENTLY COMPLETED (last 7 days):
+${(recentDone ?? [])
+  .map((t) => `- ${t.title} [${t.priority}] @ ${t.completed_at}`)
+  .join("\n") || "(none)"}
+
+RECENT MOOD LOGS:
+${(moods ?? [])
+  .map((m) => `- ${m.logged_at}: ${m.mood}${m.note ? ` — ${m.note}` : ""}`)
+  .join("\n") || "(none)"}
+
+MEMORY FROM PRIOR CONVERSATIONS (other threads, most recent first — use to remember preferences, routines, and ongoing projects):
+${(recentMessages ?? [])
+  .slice(0, 20)
+  .map((m) => `- [${m.role}] ${(m.content ?? "").slice(0, 240)}`)
   .join("\n") || "(none)"}
 `.trim();
 
