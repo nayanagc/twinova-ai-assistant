@@ -57,6 +57,22 @@ function CalendarPage() {
     },
   });
 
+  const { data: tasksWithDeadline = [] } = useQuery({
+    queryKey: ["tasks-cal", user.id, format(rangeStart, "yyyy-MM-dd"), format(rangeEnd, "yyyy-MM-dd")],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("tasks")
+        .select("id,title,deadline,priority,status,description")
+        .not("deadline", "is", null)
+        .gte("deadline", rangeStart.toISOString())
+        .lte("deadline", rangeEnd.toISOString())
+        .order("deadline");
+      return data ?? [];
+    },
+  });
+
+
+
   const create = useMutation({
     mutationFn: async (input: {
       title: string;
