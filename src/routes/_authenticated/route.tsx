@@ -17,6 +17,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "@/lib/theme";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { DeadlineReminders } from "@/components/DeadlineReminders";
+
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -171,8 +173,10 @@ function AuthedLayout() {
         </header>
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          <DeadlineReminders userId={user.id} />
           <Outlet />
         </main>
+
       </div>
     </div>
   );
