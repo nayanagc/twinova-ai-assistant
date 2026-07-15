@@ -114,7 +114,30 @@ function CalendarPage() {
     return acc;
   }, {});
 
-  const selectedEvents = eventsByDay[format(selected, "yyyy-MM-dd")] ?? [];
+  const tasksByDay = tasksWithDeadline.reduce<Record<string, typeof tasksWithDeadline>>((acc, t) => {
+    if (!t.deadline) return acc;
+    const key = format(new Date(t.deadline), "yyyy-MM-dd");
+    acc[key] = acc[key] ?? [];
+    acc[key].push(t);
+    return acc;
+  }, {});
+
+  const selectedKey = format(selected, "yyyy-MM-dd");
+  const selectedEvents = eventsByDay[selectedKey] ?? [];
+  const selectedTasks = tasksByDay[selectedKey] ?? [];
+  const selectedCount = selectedEvents.length + selectedTasks.length;
+
+  function workloadDot(dayKey: string): string | null {
+    const evs = eventsByDay[dayKey] ?? [];
+    const tks = tasksByDay[dayKey] ?? [];
+    const pending = tks.filter((t) => t.status !== "done").length;
+    const total = evs.length + pending;
+    if (total === 0) return null;
+    if (total >= 5) return "bg-red-500";
+    if (total >= 3) return "bg-orange-500";
+    return "bg-emerald-500";
+  }
+
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
