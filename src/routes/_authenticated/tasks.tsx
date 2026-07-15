@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Check, Trash2, Flag, Clock, X } from "lucide-react";
+import { Plus, Check, Trash2, Flag, Clock, X, Pause, Play, RotateCcw, Timer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -55,19 +55,24 @@ function TasksPage() {
     onError: (e) => toast.error(e.message),
   });
 
-  const toggle = useMutation({
-    mutationFn: async (t: (typeof tasks)[number]) => {
-      const nextStatus: Status = t.status === "done" ? "todo" : "done";
+  const setStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: Status }) => {
       const { error } = await supabase
         .from("tasks")
         .update({
-          status: nextStatus,
-          completed_at: nextStatus === "done" ? new Date().toISOString() : null,
+          status,
+          completed_at: status === "done" ? new Date().toISOString() : null,
         })
-        .eq("id", t.id);
+        .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks", user.id] }),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["tasks", user.id] });
+      if (v.status === "done") toast.success("Task completed");
+      if (v.status === "in_progress") toast("Task paused");
+      if (v.status === "todo") toast("Task resumed");
+    },
+    onError: (e) => toast.error(e.message),
   });
 
   const remove = useMutation({
@@ -75,13 +80,16 @@ function TasksPage() {
       const { error } = await supabase.from("tasks").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks", user.id] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks", user.id] });
+      toast.success("Task deleted");
+    },
+    onError: (e) => toast.error(e.message),
   });
 
   const filtered = filter === "all" ? tasks : tasks.filter((t) => t.status === filter);
   const grouped = {
-    urgent: filtered.filter((t) => t.priority === "urgent" && t.status !== "done"),
-    open: filtered.filter((t) => t.priority !== "urgent" && t.status !== "done"),
+    open: filtered.filter((t) => t.status !== "done"),
     done: filtered.filter((t) => t.status === "done"),
   };
 
@@ -105,7 +113,7 @@ function TasksPage() {
                   filter === f ? "gradient-bg text-white shadow-glow" : "text-muted-foreground"
                 }`}
               >
-                {f === "all" ? "All" : f === "in_progress" ? "In progress" : f === "todo" ? "To do" : "Done"}
+                {f === "all" ? "All" : f === "in_progress" ? "Paused" : f === "todo" ? "To do" : "Done"}
               </button>
             ))}
           </div>
@@ -121,36 +129,133 @@ function TasksPage() {
       {showForm && <TaskForm onSubmit={(v) => create.mutate(v)} onClose={() => setShowForm(false)} />}
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <TaskColumn title="Urgent" tint="from-rose-500/20" tasks={grouped.urgent} toggle={toggle.mutate} remove={remove.mutate} />
-        <TaskColumn title="Open" tint="from-primary/20" tasks={grouped.open} toggle={toggle.mutate} remove={remove.mutate} />
-        <TaskColumn title="Done" tint="from-emerald-500/20" tasks={grouped.done} toggle={toggle.mutate} remove={remove.mutate} />
+        <FocusTimer />
+        <TaskColumn
+          title="Open"
+          tint="from-primary/20"
+          tasks={grouped.open}
+          onDone={(id) => setStatus.mutate({ id, status: "done" })}
+          onPause={(id, cur) =>
+            setStatus.mutate({ id, status: cur === "in_progress" ? "todo" : "in_progress" })
+          }
+          onDelete={(id) => remove.mutate(id)}
+        />
+        <TaskColumn
+          title="Done"
+          tint="from-emerald-500/20"
+          tasks={grouped.done}
+          onDone={(id) => setStatus.mutate({ id, status: "todo" })}
+          onDelete={(id) => remove.mutate(id)}
+        />
       </div>
     </div>
   );
 }
 
+function FocusTimer() {
+  const [elapsed, setElapsed] = useState(0);
+  const [running, setRunning] = useState(false);
+  const [started, setStarted] = useState(false);
+  const ref = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (running) {
+      ref.current = window.setInterval(() => setElapsed((e) => e + 1), 1000);
+    }
+    return () => {
+      if (ref.current) window.clearInterval(ref.current);
+    };
+  }, [running]);
+
+  const mm = String(Math.floor(elapsed / 60)).padStart(2, "0");
+  const ss = String(elapsed % 60).padStart(2, "0");
+
+  const start = () => {
+    setStarted(true);
+    setRunning(true);
+  };
+  const pause = () => setRunning(false);
+  const resume = () => setRunning(true);
+  const reset = () => {
+    setRunning(false);
+    setElapsed(0);
+    setStarted(false);
+  };
+
+  return (
+    <div className="glass rounded-3xl p-4">
+      <div className="mb-3 flex items-center justify-between rounded-2xl bg-gradient-to-br from-rose-500/20 to-transparent p-3">
+        <h3 className="flex items-center gap-2 font-semibold">
+          <Timer className="h-4 w-4" /> Focus Timer
+        </h3>
+        <span className="text-xs text-muted-foreground">{running ? "Running" : started ? "Paused" : "Idle"}</span>
+      </div>
+      <div className="flex flex-col items-center gap-4 rounded-2xl border border-border/50 bg-background/40 p-6">
+        <div className="font-mono text-5xl font-bold tabular-nums tracking-tight">
+          {mm}:{ss}
+        </div>
+        <div className="flex flex-wrap justify-center gap-2">
+          {!started && (
+            <button
+              onClick={start}
+              className="inline-flex items-center gap-1.5 rounded-full gradient-bg px-4 py-2 text-xs font-semibold text-white shadow-glow"
+            >
+              <Play className="h-3.5 w-3.5" /> Start
+            </button>
+          )}
+          {started && running && (
+            <button
+              onClick={pause}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/60 px-4 py-2 text-xs font-semibold"
+            >
+              <Pause className="h-3.5 w-3.5" /> Pause
+            </button>
+          )}
+          {started && !running && (
+            <button
+              onClick={resume}
+              className="inline-flex items-center gap-1.5 rounded-full gradient-bg px-4 py-2 text-xs font-semibold text-white shadow-glow"
+            >
+              <Play className="h-3.5 w-3.5" /> Resume
+            </button>
+          )}
+          <button
+            onClick={reset}
+            disabled={!started && elapsed === 0}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/60 px-4 py-2 text-xs font-semibold disabled:opacity-40"
+          >
+            <RotateCcw className="h-3.5 w-3.5" /> Reset
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type TaskRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  priority: string;
+  status: string;
+  deadline: string | null;
+};
+
 function TaskColumn({
   title,
   tint,
   tasks,
-  toggle,
-  remove,
+  onDone,
+  onPause,
+  onDelete,
 }: {
   title: string;
   tint: string;
-  tasks: Array<{
-    id: string;
-    title: string;
-    description: string | null;
-    priority: string;
-    status: string;
-    deadline: string | null;
-    [key: string]: unknown;
-  }>;
-  toggle: (t: never) => void;
-  remove: (id: string) => void;
+  tasks: TaskRow[];
+  onDone: (id: string) => void;
+  onPause?: (id: string, currentStatus: string) => void;
+  onDelete: (id: string) => void;
 }) {
-  const toggleAny = toggle as unknown as (t: unknown) => void;
   return (
     <div className="glass rounded-3xl p-4">
       <div className={`mb-3 flex items-center justify-between rounded-2xl bg-gradient-to-br ${tint} to-transparent p-3`}>
@@ -168,16 +273,6 @@ function TaskColumn({
             animate={{ opacity: 1 }}
             className="group flex gap-3 rounded-2xl border border-border/50 bg-background/40 p-3"
           >
-            <button
-              onClick={() => toggleAny(t)}
-              className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border transition ${
-                t.status === "done"
-                  ? "gradient-bg border-transparent text-white"
-                  : "border-border hover:border-primary"
-              }`}
-            >
-              {t.status === "done" && <Check className="h-3 w-3" />}
-            </button>
             <div className="min-w-0 flex-1">
               <p className={`text-sm font-medium ${t.status === "done" ? "line-through text-muted-foreground" : ""}`}>
                 {t.title}
@@ -189,6 +284,11 @@ function TaskColumn({
                 <span className="inline-flex items-center gap-1 rounded-full bg-accent/40 px-2 py-0.5 uppercase tracking-wider text-muted-foreground">
                   <Flag className="h-2.5 w-2.5" /> {t.priority}
                 </span>
+                {t.status === "in_progress" && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 uppercase tracking-wider text-amber-500">
+                    <Pause className="h-2.5 w-2.5" /> Paused
+                  </span>
+                )}
                 {t.deadline && (
                   <span className="inline-flex items-center gap-1 text-muted-foreground">
                     <Clock className="h-2.5 w-2.5" />
@@ -196,13 +296,37 @@ function TaskColumn({
                   </span>
                 )}
               </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => onDone(t.id)}
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold transition ${
+                    t.status === "done"
+                      ? "border border-border bg-background/60 text-muted-foreground hover:text-foreground"
+                      : "gradient-bg text-white shadow-glow"
+                  }`}
+                >
+                  <Check className="h-3 w-3" />
+                  {t.status === "done" ? "Reopen" : "Done"}
+                </button>
+                {onPause && t.status !== "done" && (
+                  <button
+                    onClick={() => onPause(t.id, t.status)}
+                    className="inline-flex items-center gap-1 rounded-full border border-border bg-background/60 px-2.5 py-1 text-[10px] font-semibold text-foreground hover:bg-accent"
+                  >
+                    <Pause className="h-3 w-3" />
+                    {t.status === "in_progress" ? "Resume" : "Pause"}
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    if (confirm("Delete this task permanently?")) onDelete(t.id);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-full border border-destructive/40 bg-destructive/10 px-2.5 py-1 text-[10px] font-semibold text-destructive hover:bg-destructive/20"
+                >
+                  <Trash2 className="h-3 w-3" /> Delete
+                </button>
+              </div>
             </div>
-            <button
-              onClick={() => remove(t.id)}
-              className="opacity-0 transition group-hover:opacity-100 text-muted-foreground hover:text-destructive"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
           </motion.li>
         ))}
       </ul>
