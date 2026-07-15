@@ -283,7 +283,42 @@ function CalendarPage() {
                 </button>
               </motion.li>
             ))}
+            {selectedTasks.map((t) => {
+              const priorityColor =
+                t.priority === "urgent" || t.priority === "high"
+                  ? "bg-red-500"
+                  : t.priority === "medium"
+                    ? "bg-orange-500"
+                    : "bg-emerald-500";
+              return (
+                <motion.li
+                  key={`task-${t.id}`}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="flex gap-3 rounded-2xl border border-border/50 bg-background/40 p-3"
+                >
+                  <div className={`w-1 shrink-0 rounded-full ${priorityColor}`} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className={`truncate text-sm font-medium ${t.status === "done" ? "line-through text-muted-foreground" : ""}`}>
+                        {t.title}
+                      </p>
+                      <span className="rounded-full bg-accent/40 px-2 py-0.5 text-[9px] uppercase tracking-wider text-muted-foreground">
+                        Task
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Due {format(new Date(t.deadline!), "h:mm a")} · {t.priority}
+                    </p>
+                    {t.description && (
+                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{t.description}</p>
+                    )}
+                  </div>
+                </motion.li>
+              );
+            })}
           </ul>
+
         </div>
       </div>
 
