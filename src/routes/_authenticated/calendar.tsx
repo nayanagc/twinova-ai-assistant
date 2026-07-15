@@ -192,6 +192,7 @@ function CalendarPage() {
               const dayEvents = eventsByDay[key] ?? [];
               const inMonth = isSameMonth(d, cursor);
               const active = isSameDay(d, selected);
+              const dot = workloadDot(key);
               return (
                 <motion.button
                   key={key}
@@ -205,13 +206,21 @@ function CalendarPage() {
                         : "border-transparent text-muted-foreground/50"
                   }`}
                 >
-                  <span
-                    className={`mb-1 grid h-6 w-6 place-items-center rounded-full text-xs ${
-                      isToday(d) && !active ? "bg-primary text-primary-foreground" : ""
-                    }`}
-                  >
-                    {format(d, "d")}
-                  </span>
+                  <div className="mb-1 flex w-full items-center justify-between">
+                    <span
+                      className={`grid h-6 w-6 place-items-center rounded-full text-xs ${
+                        isToday(d) && !active ? "bg-primary text-primary-foreground" : ""
+                      }`}
+                    >
+                      {format(d, "d")}
+                    </span>
+                    {dot && (
+                      <span
+                        className={`h-2 w-2 rounded-full ${dot} ${active ? "ring-2 ring-white/60" : ""}`}
+                        aria-hidden
+                      />
+                    )}
+                  </div>
                   <div className="flex flex-wrap gap-0.5">
                     {dayEvents.slice(0, 3).map((e) => (
                       <span
@@ -227,16 +236,22 @@ function CalendarPage() {
               );
             })}
           </div>
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Low</span>
+            <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-orange-500" /> Medium</span>
+            <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-500" /> High workload</span>
+          </div>
         </div>
 
         {/* Day panel */}
         <div className="glass rounded-3xl p-5">
           <h3 className="text-lg font-semibold">{format(selected, "EEEE, MMM d")}</h3>
           <p className="text-xs text-muted-foreground">
-            {selectedEvents.length} {selectedEvents.length === 1 ? "event" : "events"}
+            {selectedCount} {selectedCount === 1 ? "item" : "items"}
+            {selectedTasks.length > 0 && ` · ${selectedTasks.length} task${selectedTasks.length === 1 ? "" : "s"}`}
           </p>
           <ul className="mt-4 space-y-2">
-            {selectedEvents.length === 0 && (
+            {selectedCount === 0 && (
               <p className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
                 Nothing scheduled.
               </p>
@@ -248,6 +263,7 @@ function CalendarPage() {
                 animate={{ opacity: 1, x: 0 }}
                 className="group flex gap-3 rounded-2xl border border-border/50 bg-background/40 p-3"
               >
+
                 <div className={`w-1 shrink-0 rounded-full ${CATEGORY_COLORS[e.category] ?? "bg-muted-foreground"}`} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{e.title}</p>
