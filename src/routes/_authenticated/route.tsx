@@ -17,6 +17,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "@/lib/theme";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { DeadlineReminders } from "@/components/DeadlineReminders";
+
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
