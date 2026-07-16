@@ -389,16 +389,86 @@ function Metric({
 }
 
 function AiCard({ loading, text }: { loading: boolean; text?: string }) {
+  const [status, setStatus] = useState<"idle" | "loading" | "playing">("idle");
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+
+  const stop = () => {
+    if (audio) {
+      audio.pause();
+      audio.src = "";
+      setAudio(null);
+    }
+    setStatus("idle");
+  };
+
+  const speak = async () => {
+    if (!text) return;
+    if (status === "playing") {
+      stop();
+      return;
+    }
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/gnani-tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = new Audio(url);
+      a.onended = () => {
+        setStatus("idle");
+        URL.revokeObjectURL(url);
+      };
+      a.onerror = () => {
+        setStatus("idle");
+        toast.error("Playback failed");
+      };
+      setAudio(a);
+      setStatus("playing");
+      await a.play();
+    } catch (e) {
+      setStatus("idle");
+      toast.error("Voice unavailable");
+    }
+  };
+
+  const canSpeak = !!text && !loading;
+
   return (
-    <div className="mt-5 flex gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
-      <Sparkles className="h-4 w-4 shrink-0 text-primary" />
-      <p className="text-sm leading-relaxed">
+    <div className="mt-5 flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+      <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+      <button
+        type="button"
+        onClick={speak}
+        disabled={!canSpeak}
+        className="flex-1 text-left text-sm leading-relaxed disabled:cursor-default"
+        aria-label={status === "playing" ? "Stop reading" : "Read recommendation aloud"}
+      >
         {loading && !text ? (
           <span className="text-muted-foreground">Twinova is analyzing your patterns…</span>
         ) : (
           text || "Log more activity to unlock personalized guidance."
         )}
-      </p>
+      </button>
+      <button
+        type="button"
+        onClick={speak}
+        disabled={!canSpeak}
+        aria-label={status === "playing" ? "Stop reading" : "Read recommendation aloud"}
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-primary transition hover:bg-primary/10 disabled:opacity-40"
+      >
+        {status === "loading" ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : status === "playing" ? (
+          <Square className="h-3.5 w-3.5 fill-current" />
+        ) : (
+          <Volume2 className="h-4 w-4" />
+        )}
+      </button>
     </div>
   );
 }
+
