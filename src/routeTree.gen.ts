@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiSttRouteImport } from './routes/api/stt'
+import { Route as ApiGnaniTtsRouteImport } from './routes/api/gnani-tts'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedInsightsRouteImport } from './routes/_authenticated/insights'
@@ -44,6 +45,11 @@ const ApiTtsRoute = ApiTtsRouteImport.update({
 const ApiSttRoute = ApiSttRouteImport.update({
   id: '/api/stt',
   path: '/api/stt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGnaniTtsRoute = ApiGnaniTtsRouteImport.update({
+  id: '/api/gnani-tts',
+  path: '/api/gnani-tts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiChatRoute = ApiChatRouteImport.update({
@@ -92,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/insights': typeof AuthenticatedInsightsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/gnani-tts': typeof ApiGnaniTtsRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
   '/chat/$threadId': typeof AuthenticatedChatThreadIdRoute
@@ -105,6 +112,7 @@ export interface FileRoutesByTo {
   '/insights': typeof AuthenticatedInsightsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/gnani-tts': typeof ApiGnaniTtsRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
   '/chat/$threadId': typeof AuthenticatedChatThreadIdRoute
@@ -120,6 +128,7 @@ export interface FileRoutesById {
   '/_authenticated/insights': typeof AuthenticatedInsightsRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/api/chat': typeof ApiChatRoute
+  '/api/gnani-tts': typeof ApiGnaniTtsRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
   '/_authenticated/chat/$threadId': typeof AuthenticatedChatThreadIdRoute
@@ -135,6 +144,7 @@ export interface FileRouteTypes {
     | '/insights'
     | '/tasks'
     | '/api/chat'
+    | '/api/gnani-tts'
     | '/api/stt'
     | '/api/tts'
     | '/chat/$threadId'
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/insights'
     | '/tasks'
     | '/api/chat'
+    | '/api/gnani-tts'
     | '/api/stt'
     | '/api/tts'
     | '/chat/$threadId'
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/_authenticated/insights'
     | '/_authenticated/tasks'
     | '/api/chat'
+    | '/api/gnani-tts'
     | '/api/stt'
     | '/api/tts'
     | '/_authenticated/chat/$threadId'
@@ -172,6 +184,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiChatRoute: typeof ApiChatRoute
+  ApiGnaniTtsRoute: typeof ApiGnaniTtsRoute
   ApiSttRoute: typeof ApiSttRoute
   ApiTtsRoute: typeof ApiTtsRoute
 }
@@ -211,6 +224,13 @@ declare module '@tanstack/react-router' {
       path: '/api/stt'
       fullPath: '/api/stt'
       preLoaderRoute: typeof ApiSttRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/gnani-tts': {
+      id: '/api/gnani-tts'
+      path: '/api/gnani-tts'
+      fullPath: '/api/gnani-tts'
+      preLoaderRoute: typeof ApiGnaniTtsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/chat': {
@@ -300,19 +320,10 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiChatRoute: ApiChatRoute,
+  ApiGnaniTtsRoute: ApiGnaniTtsRoute,
   ApiSttRoute: ApiSttRoute,
   ApiTtsRoute: ApiTtsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
