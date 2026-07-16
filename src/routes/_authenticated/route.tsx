@@ -36,6 +36,7 @@ const NAV = [
   { to: "/chat", label: "AI Chat", icon: MessageSquare },
   { to: "/tasks", label: "Tasks", icon: ListChecks },
   { to: "/calendar", label: "Calendar", icon: CalendarIcon },
+  { to: "/insights", label: "Insights", icon: BarChart3 },
 ] as const;
 
 function AuthedLayout() {
