@@ -6,6 +6,7 @@ import {
   MessageSquare,
   ListChecks,
   Calendar as CalendarIcon,
+  BarChart3,
   LogOut,
   Sparkles,
   Sun,
