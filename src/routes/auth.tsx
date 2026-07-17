@@ -1,14 +1,37 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Mail, Lock, Loader2 } from "lucide-react";
+import { Sparkles, Mail, Lock, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
+
+const emailSchema = z.string().trim().email("Please enter a valid email address").max(255);
+const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .max(72, "Password must be less than 72 characters");
+const nameSchema = z.string().trim().min(1, "Please enter your name").max(100);
+
+function friendlyAuthError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes("invalid login") || m.includes("invalid credentials")) return "Invalid email or password.";
+  if (m.includes("email not confirmed") || m.includes("not verified") || m.includes("email_not_confirmed"))
+    return "Email not verified. Please check your inbox for the verification link.";
+  if (m.includes("user not found") || m.includes("no user")) return "User account not found.";
+  if (m.includes("already registered") || m.includes("already exists") || m.includes("user_already_exists"))
+    return "An account with this email already exists. Try signing in.";
+  if (m.includes("network") || m.includes("fetch")) return "Network error. Please try again.";
+  if (m.includes("rate limit") || m.includes("too many")) return "Too many attempts. Please wait a moment and try again.";
+  if (m.includes("weak password") || m.includes("password"))
+    return message.charAt(0).toUpperCase() + message.slice(1);
+  return message.charAt(0).toUpperCase() + message.slice(1);
+}
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -17,6 +40,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [postSignupNotice, setPostSignupNotice] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -26,37 +50,79 @@ function AuthPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+    setPostSignupNotice(null);
+
+    // Client-side validation
+    try {
+      emailSchema.parse(email);
+      if (mode !== "forgot") passwordSchema.parse(password);
+      if (mode === "signup") nameSchema.parse(name);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        toast.error(err.errors[0]?.message ?? "Please check the form and try again.");
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
         if (error) throw error;
         toast.success("Welcome back");
         navigate({ to: "/dashboard", replace: true });
       } else if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
           password,
-          options: { data: { full_name: name }, emailRedirectTo: window.location.origin },
+          options: {
+            data: { full_name: name.trim() },
+            emailRedirectTo: `${window.location.origin}/dashboard`,
+          },
         });
         if (error) throw error;
-        toast.success("Account created — check your inbox to confirm");
+
+        // If a session is returned, email confirmation is disabled → auto-login.
+        if (data.session) {
+          toast.success("Account created successfully!");
+          navigate({ to: "/dashboard", replace: true });
+          return;
+        }
+
+        // Detect already-registered (Supabase returns identities: [] in that case)
+        if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+          toast.error("An account with this email already exists. Try signing in.");
+          setMode("signin");
+          return;
+        }
+
+        toast.success("Account created successfully! Please verify your email to continue.");
+        setPostSignupNotice(
+          "We've sent a verification email to your inbox. Please verify your email before logging in. If you don't see the email, check your Spam folder."
+        );
+        setPassword("");
       } else {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
           redirectTo: `${window.location.origin}/reset-password`,
         });
         if (error) throw error;
-        toast.success("Password reset link sent");
+        toast.success("Password reset link sent. Check your inbox.");
         setMode("signin");
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong");
+      const message = err instanceof Error ? err.message : "Something went wrong";
+      toast.error(friendlyAuthError(message));
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogle = async () => {
+    if (loading) return;
     setLoading(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
@@ -66,7 +132,7 @@ function AuthPage() {
       if (result.redirected) return;
       navigate({ to: "/dashboard", replace: true });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Google sign-in failed");
+      toast.error(friendlyAuthError(err instanceof Error ? err.message : "Google sign-in failed"));
       setLoading(false);
     }
   };
@@ -96,6 +162,15 @@ function AuthPage() {
           {mode === "signup" && "Meet your always-on AI assistant."}
           {mode === "forgot" && "We'll email you a reset link."}
         </p>
+
+        {postSignupNotice && (
+          <div className="mt-5 flex gap-3 rounded-2xl border border-primary/30 bg-primary/10 p-4 text-sm">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <p className="text-foreground/90">{postSignupNotice}</p>
+          </div>
+        )}
+
+
 
         {mode !== "forgot" && (
           <>
