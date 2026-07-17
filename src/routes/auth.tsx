@@ -163,6 +163,15 @@ function AuthPage() {
           {mode === "forgot" && "We'll email you a reset link."}
         </p>
 
+        {postSignupNotice && (
+          <div className="mt-5 flex gap-3 rounded-2xl border border-primary/30 bg-primary/10 p-4 text-sm">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <p className="text-foreground/90">{postSignupNotice}</p>
+          </div>
+        )}
+
+
+
         {mode !== "forgot" && (
           <>
             <button
