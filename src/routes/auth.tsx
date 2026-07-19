@@ -106,6 +106,7 @@ function AuthPage() {
         setPostSignupNotice(
           "We've sent a verification email to your inbox. Please verify your email before logging in. If you don't see the email, check your Spam folder."
         );
+        setPendingEmail(email.trim());
         setPassword("");
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
