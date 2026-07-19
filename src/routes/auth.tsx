@@ -40,7 +40,9 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [postSignupNotice, setPostSignupNotice] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -81,7 +83,7 @@ function AuthPage() {
           password,
           options: {
             data: { full_name: name.trim() },
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            emailRedirectTo: `${window.location.origin}/verify-email`,
           },
         });
         if (error) throw error;
@@ -104,6 +106,7 @@ function AuthPage() {
         setPostSignupNotice(
           "We've sent a verification email to your inbox. Please verify your email before logging in. If you don't see the email, check your Spam folder."
         );
+        setPendingEmail(email.trim());
         setPassword("");
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
@@ -118,6 +121,27 @@ function AuthPage() {
       toast.error(friendlyAuthError(message));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    const target = pendingEmail ?? email.trim();
+    if (!target || resending) return;
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: target,
+        options: {
+          emailRedirectTo: `${window.location.origin}/verify-email`,
+        },
+      });
+      if (error) throw error;
+      toast.success("Verification email sent. Check your inbox.");
+    } catch (err) {
+      toast.error(friendlyAuthError(err instanceof Error ? err.message : "Could not resend email"));
+    } finally {
+      setResending(false);
     }
   };
 
@@ -164,9 +188,20 @@ function AuthPage() {
         </p>
 
         {postSignupNotice && (
-          <div className="mt-5 flex gap-3 rounded-2xl border border-primary/30 bg-primary/10 p-4 text-sm">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-            <p className="text-foreground/90">{postSignupNotice}</p>
+          <div className="mt-5 rounded-2xl border border-primary/30 bg-primary/10 p-4 text-sm">
+            <div className="flex gap-3">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <p className="text-foreground/90">{postSignupNotice}</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resending}
+              className="mt-3 inline-flex items-center gap-2 rounded-xl border border-primary/40 bg-background/60 px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent disabled:opacity-60"
+            >
+              {resending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {resending ? "Sending…" : "Resend verification email"}
+            </button>
           </div>
         )}
 
