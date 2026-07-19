@@ -5,7 +5,7 @@ import { CheckCircle2, XCircle, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute("/auth/confirm")({
+export const Route = createFileRoute("/verify-email")({
   component: ConfirmPage,
 });
 

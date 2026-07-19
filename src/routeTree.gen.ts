@@ -9,11 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthConfirmRouteImport } from './routes/auth.confirm'
 import { Route as ApiTtsRouteImport } from './routes/api/tts'
 import { Route as ApiSttRouteImport } from './routes/api/stt'
 import { Route as ApiGnaniTtsRouteImport } from './routes/api/gnani-tts'
@@ -25,6 +25,11 @@ import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/c
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 import { Route as AuthenticatedChatThreadIdRouteImport } from './routes/_authenticated/chat.$threadId'
 
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -43,11 +48,6 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthConfirmRoute = AuthConfirmRouteImport.update({
-  id: '/confirm',
-  path: '/confirm',
-  getParentRoute: () => AuthRoute,
 } as any)
 const ApiTtsRoute = ApiTtsRouteImport.update({
   id: '/api/tts',
@@ -103,8 +103,9 @@ const AuthenticatedChatThreadIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRouteWithChildren
+  '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/chat': typeof AuthenticatedChatRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -114,13 +115,13 @@ export interface FileRoutesByFullPath {
   '/api/gnani-tts': typeof ApiGnaniTtsRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
-  '/auth/confirm': typeof AuthConfirmRoute
   '/chat/$threadId': typeof AuthenticatedChatThreadIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRouteWithChildren
+  '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/chat': typeof AuthenticatedChatRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -130,15 +131,15 @@ export interface FileRoutesByTo {
   '/api/gnani-tts': typeof ApiGnaniTtsRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
-  '/auth/confirm': typeof AuthConfirmRoute
   '/chat/$threadId': typeof AuthenticatedChatThreadIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/auth': typeof AuthRouteWithChildren
+  '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
   '/_authenticated/chat': typeof AuthenticatedChatRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -148,7 +149,6 @@ export interface FileRoutesById {
   '/api/gnani-tts': typeof ApiGnaniTtsRoute
   '/api/stt': typeof ApiSttRoute
   '/api/tts': typeof ApiTtsRoute
-  '/auth/confirm': typeof AuthConfirmRoute
   '/_authenticated/chat/$threadId': typeof AuthenticatedChatThreadIdRoute
 }
 export interface FileRouteTypes {
@@ -157,6 +157,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/verify-email'
     | '/calendar'
     | '/chat'
     | '/dashboard'
@@ -166,13 +167,13 @@ export interface FileRouteTypes {
     | '/api/gnani-tts'
     | '/api/stt'
     | '/api/tts'
-    | '/auth/confirm'
     | '/chat/$threadId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/reset-password'
+    | '/verify-email'
     | '/calendar'
     | '/chat'
     | '/dashboard'
@@ -182,7 +183,6 @@ export interface FileRouteTypes {
     | '/api/gnani-tts'
     | '/api/stt'
     | '/api/tts'
-    | '/auth/confirm'
     | '/chat/$threadId'
   id:
     | '__root__'
@@ -190,6 +190,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/reset-password'
+    | '/verify-email'
     | '/_authenticated/calendar'
     | '/_authenticated/chat'
     | '/_authenticated/dashboard'
@@ -199,15 +200,15 @@ export interface FileRouteTypes {
     | '/api/gnani-tts'
     | '/api/stt'
     | '/api/tts'
-    | '/auth/confirm'
     | '/_authenticated/chat/$threadId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AuthRoute: typeof AuthRouteWithChildren
+  AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
   ApiChatRoute: typeof ApiChatRoute
   ApiGnaniTtsRoute: typeof ApiGnaniTtsRoute
   ApiSttRoute: typeof ApiSttRoute
@@ -216,6 +217,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -243,13 +251,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/auth/confirm': {
-      id: '/auth/confirm'
-      path: '/confirm'
-      fullPath: '/auth/confirm'
-      preLoaderRoute: typeof AuthConfirmRouteImport
-      parentRoute: typeof AuthRoute
     }
     '/api/tts': {
       id: '/api/tts'
@@ -354,21 +355,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
-interface AuthRouteChildren {
-  AuthConfirmRoute: typeof AuthConfirmRoute
-}
-
-const AuthRouteChildren: AuthRouteChildren = {
-  AuthConfirmRoute: AuthConfirmRoute,
-}
-
-const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
-  AuthRoute: AuthRouteWithChildren,
+  AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
   ApiChatRoute: ApiChatRoute,
   ApiGnaniTtsRoute: ApiGnaniTtsRoute,
   ApiSttRoute: ApiSttRoute,
