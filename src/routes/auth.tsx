@@ -124,6 +124,27 @@ function AuthPage() {
     }
   };
 
+  const handleResend = async () => {
+    const target = pendingEmail ?? email.trim();
+    if (!target || resending) return;
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: target,
+        options: {
+          emailRedirectTo: `${window.location.origin}/verify-email`,
+        },
+      });
+      if (error) throw error;
+      toast.success("Verification email sent. Check your inbox.");
+    } catch (err) {
+      toast.error(friendlyAuthError(err instanceof Error ? err.message : "Could not resend email"));
+    } finally {
+      setResending(false);
+    }
+  };
+
   const handleGoogle = async () => {
     if (loading) return;
     setLoading(true);
