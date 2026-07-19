@@ -188,9 +188,20 @@ function AuthPage() {
         </p>
 
         {postSignupNotice && (
-          <div className="mt-5 flex gap-3 rounded-2xl border border-primary/30 bg-primary/10 p-4 text-sm">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-            <p className="text-foreground/90">{postSignupNotice}</p>
+          <div className="mt-5 rounded-2xl border border-primary/30 bg-primary/10 p-4 text-sm">
+            <div className="flex gap-3">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <p className="text-foreground/90">{postSignupNotice}</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resending}
+              className="mt-3 inline-flex items-center gap-2 rounded-xl border border-primary/40 bg-background/60 px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent disabled:opacity-60"
+            >
+              {resending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {resending ? "Sending…" : "Resend verification email"}
+            </button>
           </div>
         )}
 
