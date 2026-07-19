@@ -83,7 +83,7 @@ function AuthPage() {
           password,
           options: {
             data: { full_name: name.trim() },
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            emailRedirectTo: `${window.location.origin}/verify-email`,
           },
         });
         if (error) throw error;
