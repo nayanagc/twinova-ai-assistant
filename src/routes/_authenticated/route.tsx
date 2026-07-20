@@ -7,6 +7,7 @@ import {
   ListChecks,
   Calendar as CalendarIcon,
   BarChart3,
+  Settings as SettingsIcon,
   LogOut,
   Sparkles,
   Sun,
@@ -37,6 +38,7 @@ const NAV = [
   { to: "/tasks", label: "Tasks", icon: ListChecks },
   { to: "/calendar", label: "Calendar", icon: CalendarIcon },
   { to: "/insights", label: "Insights", icon: BarChart3 },
+  { to: "/settings", label: "Settings", icon: SettingsIcon },
 ] as const;
 
 function AuthedLayout() {
