@@ -8,4 +8,4 @@ export function createLovableAiGatewayProvider(apiKey: string) {
   });
 }
 
-export const DEFAULT_CHAT_MODEL = "google/gemini-2.5-flash";
+export const DEFAULT_CHAT_MODEL = "google/gemini-2.5-pro";
