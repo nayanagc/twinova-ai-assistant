@@ -39,13 +39,23 @@ export const Route = createFileRoute("/api/chat")({
         if (token.split(".").length !== 3)
           return new Response("Unauthorized", { status: 401 });
 
-        const apiKey = process.env.LOVABLE_API_KEY;
-        if (!apiKey) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
+        let apiKey: string;
+        try {
+          apiKey = getGeminiApiKey();
+        } catch {
+          logAi("gemini", "GEMINI_API_KEY missing in server environment");
+          return new Response(
+            "AI service is not configured (missing GEMINI_API_KEY).",
+            { status: 500 },
+          );
+        }
 
         const supabase = getServerClient(token);
         const { data: userData, error: userErr } = await supabase.auth.getUser(token);
-        if (userErr || !userData.user)
+        if (userErr || !userData.user) {
+          logAi("supabase", "auth.getUser failed", { error: userErr?.message });
           return new Response("Unauthorized", { status: 401 });
+        }
         const userId = userData.user.id;
 
         const body = (await request.json()) as ChatBody;
