@@ -27,9 +27,12 @@ export const generateInsightRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => data as InsightsPayload)
   .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("Missing LOVABLE_API_KEY");
-    const gateway = createLovableAiGatewayProvider(key);
+    let gemini: ReturnType<typeof createGeminiProvider> | null = null;
+    try {
+      gemini = createGeminiProvider(getGeminiApiKey());
+    } catch {
+      logAi("gemini", "GEMINI_API_KEY missing — returning fallback insights");
+    }
 
     const prompt = `You are Twinova, a concise productivity coach. Based on this user's data, output STRICT JSON with three short recommendations (each 1-2 sentences, warm and specific, no markdown):
 
@@ -40,21 +43,26 @@ Return JSON exactly like:
 {"weekly":"...","procrastination":"...","mood":"..."}`;
 
     try {
-      const { text } = await generateText({
-        model: gateway(DEFAULT_CHAT_MODEL),
-        prompt,
-      });
-      const match = text.match(/\{[\s\S]*\}/);
-      if (match) {
-        const parsed = JSON.parse(match[0]);
-        return {
-          weekly: String(parsed.weekly ?? ""),
-          procrastination: String(parsed.procrastination ?? ""),
-          mood: String(parsed.mood ?? ""),
-        };
+      if (gemini) {
+        const { text } = await generateText({
+          model: gemini(GEMINI_CHAT_MODEL),
+          prompt,
+        });
+        const match = text.match(/\{[\s\S]*\}/);
+        if (match) {
+          const parsed = JSON.parse(match[0]);
+          return {
+            weekly: String(parsed.weekly ?? ""),
+            procrastination: String(parsed.procrastination ?? ""),
+            mood: String(parsed.mood ?? ""),
+          };
+        }
       }
     } catch (e) {
-      // fall through to fallback
+      logAi("gemini", "insights generateText failed", {
+        model: GEMINI_CHAT_MODEL,
+        error: e instanceof Error ? e.message : String(e),
+      });
     }
     return {
       weekly: "Aim for a consistent morning focus block next week to lift your completion rate.",
