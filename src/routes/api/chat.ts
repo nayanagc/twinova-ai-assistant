@@ -123,7 +123,7 @@ ${(recentMessages ?? [])
   .join("\n") || "(none)"}
 `.trim();
 
-        const gateway = createLovableAiGatewayProvider(apiKey);
+        const gemini = createGeminiProvider(apiKey);
 
         const tools = {
           createTask: tool({
