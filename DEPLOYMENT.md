@@ -1,14 +1,16 @@
 # Twinova AI — Deployment (Vercel)
 
-The app has **no Lovable AI dependency**. All AI chat, insights, and speech-to-text
-go directly to **Google Gemini 2.5 Pro**; text-to-speech goes to **Gnani.ai**.
+The app has **no Lovable AI dependency**. AI chat, insights, and speech-to-text
+call **OpenAI directly** with your own key; text-to-speech uses **Gnani.ai**.
 
 ## Required environment variables
 
 | Variable | Where used | Notes |
 | --- | --- | --- |
-| `GEMINI_API_KEY` | `/api/chat`, `/api/stt`, insights server fn | Google AI Studio key. Server-only. Required for AI chat. |
-| `GNANI_API_KEY` | `/api/tts`, `/api/gnani-tts` | Gnani.ai (Vachana) key. Optional — only voice output needs it. |
+| `OPENAI_API_KEY` | `/api/chat`, `/api/stt`, insights server fn | Your OpenAI key. Server-only. Required for AI chat. |
+| `OPENAI_CHAT_MODEL` | chat + insights | Optional. Defaults to `gpt-4o`. |
+| `OPENAI_STT_MODEL` | `/api/stt` | Optional. Defaults to `gpt-4o-mini-transcribe`. |
+| `GNANI_API_KEY` | `/api/tts`, `/api/gnani-tts` | Gnani.ai (Vachana) key. Only voice output needs it. |
 | `SUPABASE_URL` | `/api/chat` server client | Same value as `VITE_SUPABASE_URL`. |
 | `SUPABASE_PUBLISHABLE_KEY` | `/api/chat` server client | Same value as `VITE_SUPABASE_PUBLISHABLE_KEY`. |
 | `VITE_SUPABASE_URL` | browser client | Exposed to the client (safe). |
@@ -17,7 +19,7 @@ go directly to **Google Gemini 2.5 Pro**; text-to-speech goes to **Gnani.ai**.
 
 `LOVABLE_API_KEY` is **no longer used anywhere** — you can delete it from Vercel.
 
-Add each variable to Vercel → Project → Settings → Environment Variables for
+Add each variable in Vercel → Project → Settings → Environment Variables for
 Production, Preview, and Development, then redeploy (env changes need a new build).
 
 ## Diagnosing failures
@@ -25,7 +27,8 @@ Production, Preview, and Development, then redeploy (env changes need a new buil
 Server logs are single-line JSON with a `scope` field so you can tell where a
 failure came from:
 
-- `{"scope":"gemini",...}` — Gemini rejected or failed the request (bad/missing key, quota, model error)
+- `{"scope":"openai",...}` — OpenAI rejected or failed the request (bad/missing key, quota, model error)
+- `{"scope":"gnani",...}` — voice (TTS) provider problem
 - `{"scope":"supabase",...}` — auth or database problem
 - `{"scope":"network",...}` — outbound fetch threw (DNS/timeout)
 
