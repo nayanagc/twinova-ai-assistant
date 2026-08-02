@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  createGeminiProvider,
-  getGeminiApiKey,
-  GEMINI_CHAT_MODEL,
+  createAiProvider,
+  getAiApiKey,
+  DEFAULT_CHAT_MODEL,
   logAi,
-} from "@/lib/gemini.server";
+} from "@/lib/ai-provider.server";
 import { convertToModelMessages, streamText, tool, stepCountIs, type UIMessage } from "ai";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -41,11 +41,11 @@ export const Route = createFileRoute("/api/chat")({
 
         let apiKey: string;
         try {
-          apiKey = getGeminiApiKey();
+          apiKey = getAiApiKey();
         } catch {
-          logAi("gemini", "GEMINI_API_KEY missing in server environment");
+          logAi("openai", "OPENAI_API_KEY missing in server environment");
           return new Response(
-            "AI service is not configured (missing GEMINI_API_KEY).",
+            "AI service is not configured (missing OPENAI_API_KEY).",
             { status: 500 },
           );
         }
@@ -123,7 +123,7 @@ ${(recentMessages ?? [])
   .join("\n") || "(none)"}
 `.trim();
 
-        const gemini = createGeminiProvider(apiKey);
+        const ai = createAiProvider(apiKey);
 
         const tools = {
           createTask: tool({
@@ -263,14 +263,14 @@ One tight confirmation of what you did (times + titles), then optionally ONE pro
 ${contextBlock}`;
 
         const result = streamText({
-          model: gemini(GEMINI_CHAT_MODEL),
+          model: ai(DEFAULT_CHAT_MODEL),
           system,
           messages: await convertToModelMessages(body.messages),
           tools,
           stopWhen: stepCountIs(50),
           onError: ({ error }) => {
-            logAi("gemini", "streamText failed", {
-              model: GEMINI_CHAT_MODEL,
+            logAi("openai", "streamText failed", {
+              model: DEFAULT_CHAT_MODEL,
               error: error instanceof Error ? error.message : String(error),
             });
           },
