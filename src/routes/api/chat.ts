@@ -1,5 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createLovableAiGatewayProvider, DEFAULT_CHAT_MODEL } from "@/lib/ai-gateway.server";
+import {
+  createGeminiProvider,
+  getGeminiApiKey,
+  GEMINI_CHAT_MODEL,
+  logAi,
+} from "@/lib/gemini.server";
 import { convertToModelMessages, streamText, tool, stepCountIs, type UIMessage } from "ai";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
