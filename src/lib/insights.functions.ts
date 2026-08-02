@@ -1,11 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { generateText } from "ai";
 import {
-  createGeminiProvider,
-  getGeminiApiKey,
-  GEMINI_CHAT_MODEL,
+  createAiProvider,
+  getAiApiKey,
+  DEFAULT_CHAT_MODEL,
   logAi,
-} from "./gemini.server";
+} from "./ai-provider.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type InsightsPayload = {
@@ -27,11 +27,11 @@ export const generateInsightRecommendations = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => data as InsightsPayload)
   .handler(async ({ data }) => {
-    let gemini: ReturnType<typeof createGeminiProvider> | null = null;
+    let ai: ReturnType<typeof createAiProvider> | null = null;
     try {
-      gemini = createGeminiProvider(getGeminiApiKey());
+      ai = createAiProvider(getAiApiKey());
     } catch {
-      logAi("gemini", "GEMINI_API_KEY missing — returning fallback insights");
+      logAi("openai", "OPENAI_API_KEY missing — returning fallback insights");
     }
 
     const prompt = `You are Twinova, a concise productivity coach. Based on this user's data, output STRICT JSON with three short recommendations (each 1-2 sentences, warm and specific, no markdown):
@@ -43,9 +43,9 @@ Return JSON exactly like:
 {"weekly":"...","procrastination":"...","mood":"..."}`;
 
     try {
-      if (gemini) {
+      if (ai) {
         const { text } = await generateText({
-          model: gemini(GEMINI_CHAT_MODEL),
+          model: ai(DEFAULT_CHAT_MODEL),
           prompt,
         });
         const match = text.match(/\{[\s\S]*\}/);
@@ -59,8 +59,8 @@ Return JSON exactly like:
         }
       }
     } catch (e) {
-      logAi("gemini", "insights generateText failed", {
-        model: GEMINI_CHAT_MODEL,
+      logAi("openai", "insights generateText failed", {
+        model: DEFAULT_CHAT_MODEL,
         error: e instanceof Error ? e.message : String(e),
       });
     }
