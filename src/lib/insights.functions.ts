@@ -1,6 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { generateText } from "ai";
-import { createLovableAiGatewayProvider, DEFAULT_CHAT_MODEL } from "./ai-gateway.server";
+import {
+  createGeminiProvider,
+  getGeminiApiKey,
+  GEMINI_CHAT_MODEL,
+  logAi,
+} from "./gemini.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type InsightsPayload = {
