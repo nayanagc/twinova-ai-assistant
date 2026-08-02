@@ -1,5 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createLovableAiGatewayProvider, DEFAULT_CHAT_MODEL } from "@/lib/ai-gateway.server";
+import {
+  createGeminiProvider,
+  getGeminiApiKey,
+  GEMINI_CHAT_MODEL,
+  logAi,
+} from "@/lib/gemini.server";
 import { convertToModelMessages, streamText, tool, stepCountIs, type UIMessage } from "ai";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -34,13 +39,23 @@ export const Route = createFileRoute("/api/chat")({
         if (token.split(".").length !== 3)
           return new Response("Unauthorized", { status: 401 });
 
-        const apiKey = process.env.LOVABLE_API_KEY;
-        if (!apiKey) return new Response("Missing LOVABLE_API_KEY", { status: 500 });
+        let apiKey: string;
+        try {
+          apiKey = getGeminiApiKey();
+        } catch {
+          logAi("gemini", "GEMINI_API_KEY missing in server environment");
+          return new Response(
+            "AI service is not configured (missing GEMINI_API_KEY).",
+            { status: 500 },
+          );
+        }
 
         const supabase = getServerClient(token);
         const { data: userData, error: userErr } = await supabase.auth.getUser(token);
-        if (userErr || !userData.user)
+        if (userErr || !userData.user) {
+          logAi("supabase", "auth.getUser failed", { error: userErr?.message });
           return new Response("Unauthorized", { status: 401 });
+        }
         const userId = userData.user.id;
 
         const body = (await request.json()) as ChatBody;
@@ -108,7 +123,7 @@ ${(recentMessages ?? [])
   .join("\n") || "(none)"}
 `.trim();
 
-        const gateway = createLovableAiGatewayProvider(apiKey);
+        const gemini = createGeminiProvider(apiKey);
 
         const tools = {
           createTask: tool({
@@ -248,11 +263,17 @@ One tight confirmation of what you did (times + titles), then optionally ONE pro
 ${contextBlock}`;
 
         const result = streamText({
-          model: gateway(DEFAULT_CHAT_MODEL),
+          model: gemini(GEMINI_CHAT_MODEL),
           system,
           messages: await convertToModelMessages(body.messages),
           tools,
           stopWhen: stepCountIs(50),
+          onError: ({ error }) => {
+            logAi("gemini", "streamText failed", {
+              model: GEMINI_CHAT_MODEL,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          },
         });
 
         return result.toUIMessageStreamResponse({
