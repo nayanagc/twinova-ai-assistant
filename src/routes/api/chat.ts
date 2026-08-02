@@ -263,11 +263,17 @@ One tight confirmation of what you did (times + titles), then optionally ONE pro
 ${contextBlock}`;
 
         const result = streamText({
-          model: gateway(DEFAULT_CHAT_MODEL),
+          model: gemini(GEMINI_CHAT_MODEL),
           system,
           messages: await convertToModelMessages(body.messages),
           tools,
           stopWhen: stepCountIs(50),
+          onError: ({ error }) => {
+            logAi("gemini", "streamText failed", {
+              model: GEMINI_CHAT_MODEL,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          },
         });
 
         return result.toUIMessageStreamResponse({
