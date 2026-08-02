@@ -71,7 +71,19 @@ function ThreadView() {
   const { messages, sendMessage, status, setMessages, stop } = useChat({
     id: threadId,
     transport,
-    onError: (err) => toast.error(err.message || "Chat error"),
+    onError: (err) => {
+      const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+      // eslint-disable-next-line no-console
+      console.error("[twinova/chat] request failed", {
+        offline,
+        message: err?.message,
+      });
+      toast.error(
+        offline
+          ? "No internet connection. Reconnect and try again."
+          : "Unable to reach the AI service. Please try again.",
+      );
+    },
     onFinish: () => {
       qc.invalidateQueries({ queryKey: ["tasks", user.id] });
       qc.invalidateQueries({ queryKey: ["events-today", user.id] });
