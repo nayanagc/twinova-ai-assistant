@@ -1,5 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getAiApiKey, OPENAI_BASE_URL, logAi } from "@/lib/ai-provider.server";
+import {
+  getAiApiKey,
+  getAiBaseUrl,
+  getAiAuthHeaders,
+  DEFAULT_STT_MODEL,
+  logAi,
+} from "@/lib/ai-provider.server";
 
 /** Speech-to-text via OpenAI transcriptions. No Lovable AI dependency. */
 export const Route = createFileRoute("/api/stt")({
