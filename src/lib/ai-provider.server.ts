@@ -26,6 +26,58 @@ export function getAiApiKey(): string {
   return key;
 }
 
+const FALLBACK_CHAT_MODEL = "openai/gpt-5.6-terra";
+
+/**
+ * Fetch that talks to OpenAI first, and transparently retries on the built-in
+ * (keyless) AI gateway when OpenAI rejects the key or the account is out of
+ * quota — so chat keeps working instead of hard-failing.
+ */
+async function openAiWithFallbackFetch(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  const res = await fetch(input, init);
+  if (res.ok) return res;
+
+  const lovableKey = process.env.LOVABLE_API_KEY;
+  const retryable = [401, 402, 403, 429].includes(res.status) || res.status >= 500;
+  const bodyText = await res.clone().text().catch(() => "");
+  const quota = bodyText.includes("insufficient_quota") || bodyText.includes("exceeded your current quota");
+
+  if (!lovableKey || (!retryable && !quota)) {
+    logAi("openai", "OpenAI request failed", { status: res.status, body: bodyText.slice(0, 300) });
+    return res;
+  }
+
+  logAi("openai", "OpenAI unavailable — falling back to built-in AI", {
+    status: res.status,
+    quota,
+  });
+
+  const url = new URL(String(input instanceof Request ? input.url : input));
+  const path = url.pathname.replace(/^\/v1/, "");
+  let body = init?.body;
+  if (typeof body === "string") {
+    try {
+      const parsed = JSON.parse(body) as Record<string, unknown>;
+      parsed.model = FALLBACK_CHAT_MODEL;
+      parsed.reasoning_effort = "none";
+      delete parsed.max_tokens;
+      delete parsed.temperature;
+      body = JSON.stringify(parsed);
+    } catch {
+      /* leave body as-is */
+    }
+  }
+
+  const headers = new Headers(init?.headers);
+  headers.delete("authorization");
+  headers.set("Lovable-API-Key", lovableKey);
+
+  return fetch(`https://ai.gateway.lovable.dev/v1${path}`, { ...init, headers, body });
+}
+
 export function createAiProvider(apiKey: string) {
   if (hasOpenAi()) {
     return createOpenAICompatible({
@@ -34,6 +86,7 @@ export function createAiProvider(apiKey: string) {
       headers: { Authorization: `Bearer ${apiKey}` },
       includeUsage: true,
       supportsStructuredOutputs: true,
+      fetch: openAiWithFallbackFetch,
     });
   }
   return createOpenAICompatible({
