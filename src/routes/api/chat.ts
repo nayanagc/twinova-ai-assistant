@@ -267,6 +267,7 @@ ${contextBlock}`;
           system,
           messages: await convertToModelMessages(body.messages),
           tools,
+          providerOptions: { lovable: { reasoningEffort: "none" } },
           stopWhen: stepCountIs(50),
           onError: ({ error }) => {
             logAi("openai", "streamText failed", {

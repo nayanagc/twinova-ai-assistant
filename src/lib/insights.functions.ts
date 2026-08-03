@@ -47,6 +47,7 @@ Return JSON exactly like:
         const { text } = await generateText({
           model: ai(DEFAULT_CHAT_MODEL),
           prompt,
+          providerOptions: { lovable: { reasoningEffort: "none" } },
         });
         const match = text.match(/\{[\s\S]*\}/);
         if (match) {

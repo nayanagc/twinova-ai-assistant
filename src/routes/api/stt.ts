@@ -1,5 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getAiApiKey, OPENAI_BASE_URL, logAi } from "@/lib/ai-provider.server";
+import {
+  getAiApiKey,
+  getAiBaseUrl,
+  getAiAuthHeaders,
+  DEFAULT_STT_MODEL,
+  logAi,
+} from "@/lib/ai-provider.server";
 
 /** Speech-to-text via OpenAI transcriptions. No Lovable AI dependency. */
 export const Route = createFileRoute("/api/stt")({
@@ -25,12 +31,12 @@ export const Route = createFileRoute("/api/stt")({
 
         const upstreamForm = new FormData();
         upstreamForm.append("file", file, "recording.webm");
-        upstreamForm.append("model", process.env.OPENAI_STT_MODEL || "gpt-4o-mini-transcribe");
+        upstreamForm.append("model", DEFAULT_STT_MODEL);
 
         try {
-          const res = await fetch(`${OPENAI_BASE_URL}/audio/transcriptions`, {
+          const res = await fetch(`${getAiBaseUrl()}/audio/transcriptions`, {
             method: "POST",
-            headers: { Authorization: `Bearer ${apiKey}` },
+            headers: getAiAuthHeaders(apiKey),
             body: upstreamForm,
           });
 
