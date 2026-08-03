@@ -55,3 +55,20 @@ export function logAi(
     JSON.stringify({ at: new Date().toISOString(), scope, message, ...(meta ?? {}) }),
   );
 }
+
+/** Base URL for raw REST calls (STT etc.). */
+export function getAiBaseUrl(): string {
+  return hasOpenAi() ? "https://api.openai.com/v1" : "https://ai.gateway.lovable.dev/v1";
+}
+
+/** Auth headers for raw REST calls. */
+export function getAiAuthHeaders(apiKey: string): Record<string, string> {
+  return hasOpenAi()
+    ? { Authorization: `Bearer ${apiKey}` }
+    : { "Lovable-API-Key": apiKey };
+}
+
+/** Speech-to-text model id for the active provider. */
+export const DEFAULT_STT_MODEL = hasOpenAi()
+  ? process.env.OPENAI_STT_MODEL || "gpt-4o-mini-transcribe"
+  : "openai/gpt-4o-transcribe";
