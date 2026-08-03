@@ -1,3 +1,10 @@
+![React](https://img.shields.io/badge/React-19-blue)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
+![Supabase](https://img.shields.io/badge/Supabase-Backend-green)
+![OpenAI](https://img.shields.io/badge/OpenAI-GPT-black)
+![Gnani.ai](https://img.shields.io/badge/Gnani.ai-TTS-orange)
+![Vercel](https://img.shields.io/badge/Hosted%20on-Vercel-black)
+
 # 🚀 Twinova AI – Your AI Digital Twin & Productivity Assistant
 
 > An AI-powered digital twin that helps users stay organized, improve productivity, and make smarter decisions through personalized AI-driven insights.
