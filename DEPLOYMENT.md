@@ -8,7 +8,7 @@ call **Google Gemini** directly with your own key; text-to-speech uses **Gnani.a
 | Variable | Where used | Notes |
 | --- | --- | --- |
 | `GEMINI_API_KEY` | `/api/chat`, insights server fn | **Primary AI key** (Google AI Studio). Server-only. Takes priority over OpenAI. |
-| `GEMINI_CHAT_MODEL` | chat + insights | Optional. Defaults to `gemini-2.5-flash`. |
+| `GEMINI_CHAT_MODEL` | chat + insights | Optional. Defaults to `gemini-flash-latest`. |
 | `OPENAI_API_KEY` | `/api/stt`, chat fallback | Optional. Only needed for voice input (speech-to-text) or if you prefer OpenAI for chat. |
 | `OPENAI_CHAT_MODEL` | chat + insights | Optional. Defaults to `gpt-4o` (only used when no Gemini key). |
 | `OPENAI_STT_MODEL` | `/api/stt` | Optional. Defaults to `gpt-4o-mini-transcribe`. |
