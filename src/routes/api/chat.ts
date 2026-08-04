@@ -43,12 +43,17 @@ export const Route = createFileRoute("/api/chat")({
         try {
           apiKey = getAiApiKey();
         } catch {
-          logAi("openai", "OPENAI_API_KEY missing in server environment");
+          logAi("gemini", "no AI key present in server environment", {
+            hasGemini: Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
+            hasOpenAi: Boolean(process.env.OPENAI_API_KEY),
+            hasLovable: Boolean(process.env.LOVABLE_API_KEY),
+          });
           return new Response(
-            "AI service is not configured (missing OPENAI_API_KEY).",
+            "AI is not configured on the server: set GEMINI_API_KEY (and optionally GEMINI_CHAT_MODEL) in your deployment environment.",
             { status: 500 },
           );
         }
+
 
         const supabase = getServerClient(token);
         const { data: userData, error: userErr } = await supabase.auth.getUser(token);
