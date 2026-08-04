@@ -73,17 +73,18 @@ function ThreadView() {
     transport,
     onError: (err) => {
       const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+      const detail = (err?.message ?? "").trim();
       // eslint-disable-next-line no-console
-      console.error("[twinova/chat] request failed", {
-        offline,
-        message: err?.message,
-      });
+      console.error("[twinova/chat] request failed", { offline, message: detail, error: err });
       toast.error(
         offline
           ? "No internet connection. Reconnect and try again."
-          : "Unable to reach the AI service. Please try again.",
+          : detail
+            ? `AI error: ${detail.slice(0, 300)}`
+            : "Unable to reach the AI service. Please try again.",
       );
     },
+
     onFinish: () => {
       qc.invalidateQueries({ queryKey: ["tasks", user.id] });
       qc.invalidateQueries({ queryKey: ["events-today", user.id] });
