@@ -275,15 +275,24 @@ ${contextBlock}`;
           providerOptions: { lovable: { reasoningEffort: "none" } },
           stopWhen: stepCountIs(50),
           onError: ({ error }) => {
-            logAi("openai", "streamText failed", {
+            logAi("gemini", "streamText failed", {
               model: DEFAULT_CHAT_MODEL,
-              error: error instanceof Error ? error.message : String(error),
+              error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+              stack: error instanceof Error ? error.stack?.slice(0, 1200) : undefined,
             });
           },
         });
 
         return result.toUIMessageStreamResponse({
           originalMessages: body.messages,
+          // Surface the real upstream failure instead of the SDK's generic text.
+          onError: (error) => {
+            const message =
+              error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+            logAi("gemini", "stream error forwarded to client", { message });
+            return message;
+          },
+
           onFinish: async ({ messages }) => {
             if (!body.threadId) return;
             const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
