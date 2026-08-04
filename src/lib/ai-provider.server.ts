@@ -19,7 +19,7 @@ const hasGemini = () => Boolean(geminiKey());
 const hasOpenAi = () => !hasGemini() && Boolean(process.env.OPENAI_API_KEY);
 
 export const DEFAULT_CHAT_MODEL = hasGemini()
-  ? process.env.GEMINI_CHAT_MODEL || "gemini-2.5-flash"
+  ? process.env.GEMINI_CHAT_MODEL || "gemini-flash-latest"
   : hasOpenAi()
     ? process.env.OPENAI_CHAT_MODEL || "gpt-4o"
     : "google/gemini-3.6-flash";
