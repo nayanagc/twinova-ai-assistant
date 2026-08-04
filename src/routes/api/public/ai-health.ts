@@ -46,6 +46,8 @@ export const Route = createFileRoute("/api/public/ai-health")({
               model,
               status: res.status,
               ok: res.ok,
+              keyLen: geminiKey.length,
+              keyTrimmedLen: geminiKey.trim().length,
               ...(res.ok ? {} : { body: text.slice(0, 500) }),
             };
           } catch (e) {
