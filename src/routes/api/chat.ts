@@ -43,12 +43,17 @@ export const Route = createFileRoute("/api/chat")({
         try {
           apiKey = getAiApiKey();
         } catch {
-          logAi("openai", "OPENAI_API_KEY missing in server environment");
+          logAi("gemini", "no AI key present in server environment", {
+            hasGemini: Boolean(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY),
+            hasOpenAi: Boolean(process.env.OPENAI_API_KEY),
+            hasLovable: Boolean(process.env.LOVABLE_API_KEY),
+          });
           return new Response(
-            "AI service is not configured (missing OPENAI_API_KEY).",
+            "AI is not configured on the server: set GEMINI_API_KEY (and optionally GEMINI_CHAT_MODEL) in your deployment environment.",
             { status: 500 },
           );
         }
+
 
         const supabase = getServerClient(token);
         const { data: userData, error: userErr } = await supabase.auth.getUser(token);
@@ -270,15 +275,24 @@ ${contextBlock}`;
           providerOptions: { lovable: { reasoningEffort: "none" } },
           stopWhen: stepCountIs(50),
           onError: ({ error }) => {
-            logAi("openai", "streamText failed", {
+            logAi("gemini", "streamText failed", {
               model: DEFAULT_CHAT_MODEL,
-              error: error instanceof Error ? error.message : String(error),
+              error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+              stack: error instanceof Error ? error.stack?.slice(0, 1200) : undefined,
             });
           },
         });
 
         return result.toUIMessageStreamResponse({
           originalMessages: body.messages,
+          // Surface the real upstream failure instead of the SDK's generic text.
+          onError: (error) => {
+            const message =
+              error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+            logAi("gemini", "stream error forwarded to client", { message });
+            return message;
+          },
+
           onFinish: async ({ messages }) => {
             if (!body.threadId) return;
             const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");

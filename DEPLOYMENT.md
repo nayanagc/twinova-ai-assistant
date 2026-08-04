@@ -38,4 +38,23 @@ failure came from:
 In the browser console, chat failures log as `[twinova/chat] request failed`
 with an `offline` flag. The UI only says "No internet connection" when
 `navigator.onLine === false`; every other failure shows
-"Unable to reach the AI service. Please try again."
+the real upstream error text (`AI error: ...`) so you can see the exact
+failure; it falls back to "Unable to reach the AI service. Please try again."
+only when no message is available.
+
+### Health check endpoint
+
+`GET /api/public/ai-health` (works on any deployment, no auth) returns which
+env vars the **server** can actually see and the live HTTP status of a real
+Gemini call. No secret values are ever returned.
+
+```
+curl https://<your-app>.vercel.app/api/public/ai-health
+```
+
+If `env.GEMINI_API_KEY` is `false` there, Vercel is missing the variable —
+add `GEMINI_API_KEY` (and optionally `GEMINI_CHAT_MODEL=gemini-flash-latest`)
+in Vercel → Settings → Environment Variables for the environment you are
+hitting, then **redeploy** (Vercel only applies env changes on a new build).
+If `gemini.status` is 400/401/403, the key value in Vercel is wrong,
+truncated, or expired; if it is 429, the Google project is out of quota.
